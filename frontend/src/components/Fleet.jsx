@@ -18,6 +18,7 @@ export default function Fleet({ user }) {
   const [newStatus, setNewStatus] = useState('AVAILABLE');
   
   // List State
+  const [allVehicles, setAllVehicles] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,9 +41,21 @@ export default function Fleet({ user }) {
       });
   };
 
+  const fetchAllVehicles = () => {
+    api.getVehicles()
+      .then(data => {
+        setAllVehicles(Array.isArray(data) ? data : data.results || []);
+      })
+      .catch(console.error);
+  };
+
   useEffect(() => {
     fetchVehicles();
   }, [searchTerm, typeFilter, statusFilter]);
+
+  useEffect(() => {
+    fetchAllVehicles();
+  }, []);
 
   const handleAddVehicle = (e) => {
     e.preventDefault();
@@ -67,6 +80,7 @@ export default function Fleet({ user }) {
         alert('Vehicle successfully registered!');
         setShowAddModal(false);
         fetchVehicles();
+        fetchAllVehicles();
         
         // Reset Form
         setNewReg('');
@@ -92,15 +106,19 @@ export default function Fleet({ user }) {
         .then(() => {
           alert('Vehicle status set to RETIRED.');
           fetchVehicles();
+          fetchAllVehicles();
         })
         .catch(err => alert(err.detail || 'Failed to retire vehicle.'));
     }
   };
 
-  // Calculate stats based on loaded list
-  const totalFleet = vehicles.length;
-  const inShop = vehicles.filter(v => v.status === 'IN_SHOP').length;
-  const available = vehicles.filter(v => v.status === 'AVAILABLE').length;
+  // Calculate stats based on overall list
+  const totalFleet = allVehicles.length;
+  const inShop = allVehicles.filter(v => v.status === 'IN_SHOP').length;
+  const available = allVehicles.filter(v => v.status === 'AVAILABLE').length;
+  const inService = allVehicles.filter(v => v.status === 'ON_TRIP' || v.status === 'IN_TRANSIT').length;
+  const nonRetired = allVehicles.filter(v => v.status !== 'RETIRED').length;
+  const utilization = nonRetired > 0 ? ((inService + inShop) / nonRetired * 100).toFixed(1) : '0.0';
 
   return (
     <div className="flex-grow space-y-6">
@@ -168,24 +186,24 @@ export default function Fleet({ user }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-stack-md">
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
           <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Total Fleet</p>
-          <p className="text-3xl font-bold text-primary m-0">{totalFleet || 124}</p>
+          <p className="text-3xl font-bold text-primary m-0">{totalFleet}</p>
         </div>
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
           <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">In Service</p>
           <div className="flex items-center gap-2">
-            <p className="text-3xl font-bold text-success m-0">{available || 98}</p>
+            <p className="text-3xl font-bold text-success m-0">{inService}</p>
             <span className="text-[10px] bg-success/10 text-success px-1.5 py-0.5 rounded font-bold">
-              {totalFleet > 0 ? Math.round((available / totalFleet) * 100) : 79}%
+              {totalFleet > 0 ? Math.round((inService / totalFleet) * 100) : 0}%
             </span>
           </div>
         </div>
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
           <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">In Shop</p>
-          <p className="text-3xl font-bold text-warning m-0">{inShop || 12}</p>
+          <p className="text-3xl font-bold text-warning m-0">{inShop}</p>
         </div>
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
           <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Capacity Utilization</p>
-          <p className="text-3xl font-bold text-info m-0">84.2%</p>
+          <p className="text-3xl font-bold text-info m-0">{utilization}%</p>
         </div>
       </div>
 

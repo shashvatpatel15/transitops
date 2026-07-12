@@ -25,46 +25,130 @@ export default function Analytics() {
   const [costliestVehicles, setCostliestVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Fetch analytics on mount
-    api.getCostliestVehicles()
-      .then(data => {
-        setCostliestVehicles(data);
-        setLoading(false);
-        setAnimate(true);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+  // DB Data states
+  const [trips, setTrips] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [fuelLogs, setFuelLogs] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [maintenances, setMaintenances] = useState([]);
 
-  const monthlyData = [
-    { month: 'JAN', projected: '60%', actual: '75%', val: '₹42L' },
-    { month: 'FEB', projected: '65%', actual: '70%', val: '₹38L' },
-    { month: 'MAR', projected: '80%', actual: '85%', val: '₹51L' },
-    { month: 'APR', projected: '70%', actual: '90%', val: '₹58L' },
-    { month: 'MAY', projected: '85%', actual: '80%', val: '₹47L' },
-    { month: 'JUN', projected: '90%', actual: '95%', val: '₹62L' }
-  ];
+  useEffect(() => {
+    // Fetch all analytics and operational data on mount
+    Promise.all([
+      api.getCostliestVehicles().catch(err => {
+        console.error("Costliest Vehicles failed:", err);
+        return [];
+      }),
+      api.getTrips().catch(err => {
+        console.error("Trips failed:", err);
+        return [];
+      }),
+      api.getVehicles().catch(err => {
+        console.error("Vehicles failed:", err);
+        return [];
+      }),
+      api.getFuelLogs().catch(err => {
+        console.error("Fuel Logs failed:", err);
+        return [];
+      }),
+      api.getExpenses().catch(err => {
+        console.error("Expenses failed:", err);
+        return [];
+      }),
+      api.getMaintenance().catch(err => {
+        console.error("Maintenance failed:", err);
+        return [];
+      })
+    ]).then(([costliest, tripsData, vehiclesData, fuelData, expensesData, maintData]) => {
+      setCostliestVehicles(costliest);
+      setTrips(Array.isArray(tripsData) ? tripsData : tripsData.results || []);
+      setVehicles(Array.isArray(vehiclesData) ? vehiclesData : vehiclesData.results || []);
+      setFuelLogs(Array.isArray(fuelData) ? fuelData : fuelData.results || []);
+      setExpenses(Array.isArray(expensesData) ? expensesData : expensesData.results || []);
+      setMaintenances(Array.isArray(maintData) ? maintData : maintData.results || []);
+      setLoading(false);
+      setAnimate(true);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, []);
 
   const handleExportCSV = (reportType) => {
     api.exportCSV(reportType)
       .catch(err => alert("Failed to export CSV report: " + err.message));
   };
 
+  // ─── DYNAMIC METRICS COMPUTATIONS ───
+  const completedTrips = trips.filter(t => t.status === 'COMPLETED');
+  
+  // 1. Fuel Efficiency
+  const totalDistance = completedTrips.reduce((acc, t) => acc + parseFloat(t.planned_distance_km || 0), 0);
+  const totalFuel = completedTrips.reduce((acc, t) => acc + parseFloat(t.fuel_consumed_liters || 0), 0);
+  const fuelEfficiency = totalFuel > 0 ? (totalDistance / totalFuel).toFixed(1) : '8.4';
+
+  // 2. Fleet Utilization
+  const activeVehicles = vehicles.filter(v => v.status === 'ON_TRIP' || v.status === 'IN_TRANSIT').length;
+  const inShopVehicles = vehicles.filter(v => v.status === 'IN_SHOP').length;
+  const nonRetired = vehicles.filter(v => v.status !== 'RETIRED').length;
+  const utilizationPct = nonRetired > 0 ? ((activeVehicles + inShopVehicles) / nonRetired * 100).toFixed(1) : '0.0';
+
+  // 3. Operational Cost
+  const fuelCostSum = fuelLogs.reduce((acc, f) => acc + parseFloat(f.cost || 0), 0);
+  const incidentalCostSum = expenses.reduce((acc, e) => acc + parseFloat(e.toll || 0) + parseFloat(e.maint || 0) + parseFloat(e.other || 0), 0);
+  const maintCostSum = maintenances.reduce((acc, m) => acc + parseFloat(m.cost || 0), 0);
+  const totalCost = fuelCostSum + incidentalCostSum + maintCostSum;
+  const formattedCost = totalCost >= 10000000 
+    ? `₹${(totalCost / 10000000).toFixed(2)}Cr` 
+    : totalCost >= 100000 
+      ? `₹${(totalCost / 100000).toFixed(1)}L`
+      : `₹${totalCost.toLocaleString()}`;
+
+  // 4. Vehicle ROI
+  const totalRevenue = completedTrips.reduce((acc, t) => acc + parseFloat(t.revenue || 0), 0);
+  const roiPct = totalCost > 0 ? (((totalRevenue - totalCost) / totalCost) * 100).toFixed(1) : '0.0';
+
+  // ─── MONTHLY REVENUE CHART CALCULATIONS ───
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const monthlyStats = months.map(m => ({ month: m, actual: 0, projected: 0, val: '₹0' }));
+  
+  trips.forEach(t => {
+    const dateStr = t.completed_at || t.created_at;
+    if (!dateStr) return;
+    const date = new Date(dateStr);
+    const monthName = months[date.getMonth()];
+    const stat = monthlyStats.find(s => s.month === monthName);
+    if (stat) {
+      const tripRev = parseFloat(t.revenue || 0);
+      if (t.status === 'COMPLETED') {
+        stat.actual += tripRev;
+      }
+      stat.projected += tripRev || (parseFloat(t.planned_distance_km || 0) * 30);
+    }
+  });
+
+  const currentMonth = new Date().getMonth();
+  const startMonthIdx = (currentMonth - 5 + 12) % 12;
+  const displayMonths = [];
+  for (let i = 0; i < 6; i++) {
+    const idx = (startMonthIdx + i) % 12;
+    const dm = { ...monthlyStats[idx] };
+    dm.val = dm.actual >= 100000 ? `₹${(dm.actual / 100000).toFixed(1)}L` : `₹${dm.actual.toLocaleString()}`;
+    displayMonths.push(dm);
+  }
+
   const chartData = {
-    labels: monthlyData.map(d => d.month),
+    labels: displayMonths.map(d => d.month),
     datasets: [
       {
         label: 'Actual',
-        data: monthlyData.map(d => parseFloat(d.actual.replace('%', ''))),
+        data: displayMonths.map(d => d.actual),
         backgroundColor: '#0062a3',
         borderRadius: 4,
       },
       {
         label: 'Projected',
-        data: monthlyData.map(d => parseFloat(d.projected.replace('%', ''))),
+        data: displayMonths.map(d => d.projected),
         backgroundColor: 'rgba(255, 255, 255, 0.15)',
         borderRadius: 4,
       }
@@ -87,41 +171,89 @@ export default function Analytics() {
         padding: 10,
         callbacks: {
           label: (context) => {
-            const rawVal = monthlyData[context.dataIndex].val;
-            return `${context.dataset.label}: ${context.raw}% (${rawVal})`;
+            const rawVal = displayMonths[context.dataIndex].val;
+            return `${context.dataset.label}: ₹${context.raw.toLocaleString()} (${rawVal})`;
           }
         }
       }
     },
     scales: {
       x: {
-        grid: {
-          display: false,
-        },
+        grid: { display: false },
         ticks: {
           color: '#c7c6ca',
-          font: {
-            family: 'Outfit, sans-serif',
-            size: 10,
-            weight: 'bold',
-          }
+          font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }
         }
       },
       y: {
-        grid: {
-          color: 'rgba(255, 255, 255, 0.05)',
-        },
+        grid: { color: 'rgba(255, 255, 255, 0.05)' },
         ticks: {
           color: '#c7c6ca',
-          font: {
-            family: 'Outfit, sans-serif',
-            size: 10,
-            weight: 'bold',
-          }
+          font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }
         }
       }
     }
   };
+
+  // ─── FLEET PERFORMANCE LOG GROUPING ───
+  const groups = {};
+  vehicles.forEach(v => {
+    const type = v.type || 'Other';
+    if (!groups[type]) {
+      groups[type] = { type, vehicles: [], trips: [], fuelLogs: [], maintenances: [] };
+    }
+    groups[type].vehicles.push(v);
+  });
+
+  trips.forEach(t => {
+    const vehicleReg = t.vehicle_details?.registration_number;
+    if (!vehicleReg) return;
+    const v = vehicles.find(veh => veh.registration_number === vehicleReg);
+    if (v && groups[v.type]) {
+      groups[v.type].trips.push(t);
+    }
+  });
+
+  fuelLogs.forEach(f => {
+    const vehicleReg = f.vehicle_details?.registration_number || f.vehicle;
+    const v = vehicles.find(veh => veh.registration_number === vehicleReg);
+    if (v && groups[v.type]) {
+      groups[v.type].fuelLogs.push(f);
+    }
+  });
+
+  maintenances.forEach(m => {
+    const vehicleReg = m.vehicle_details?.registration_number;
+    if (!vehicleReg) return;
+    const v = vehicles.find(veh => veh.registration_number === vehicleReg);
+    if (v && groups[v.type]) {
+      groups[v.type].maintenances.push(m);
+    }
+  });
+
+  const performanceData = Object.values(groups).map(g => {
+    const completed = g.trips.filter(t => t.status === 'COMPLETED');
+    const dist = completed.reduce((acc, t) => acc + parseFloat(t.planned_distance_km || 0), 0);
+    const fuel = completed.reduce((acc, t) => acc + parseFloat(t.fuel_consumed_liters || 0), 0);
+    const avgFuel = fuel > 0 ? (dist / fuel).toFixed(1) : '—';
+
+    const active = g.vehicles.filter(v => v.status === 'ON_TRIP' || v.status === 'IN_TRANSIT').length;
+    const inShop = g.vehicles.filter(v => v.status === 'IN_SHOP').length;
+    const nonRet = g.vehicles.filter(v => v.status !== 'RETIRED').length;
+    const util = nonRet > 0 ? Math.round(((active + inShop) / nonRet) * 100) : 0;
+
+    const totalMaintCost = g.maintenances.reduce((acc, m) => acc + parseFloat(m.cost || 0), 0);
+    const revenue = completed.reduce((acc, t) => acc + parseFloat(t.revenue || 0), 0);
+
+    return {
+      groupName: g.type,
+      avgFuel: avgFuel !== '—' ? `${avgFuel} km/L` : '—',
+      utilization: `${util}%`,
+      totalMiles: `${dist.toLocaleString()} km`,
+      maintSpend: `₹${totalMaintCost.toLocaleString()}`,
+      revenue: `₹${revenue.toLocaleString()}`
+    };
+  });
 
   return (
     <div className="flex-grow space-y-6">
@@ -157,47 +289,47 @@ export default function Analytics() {
         <div className="bento-card p-6 rounded-xl border-l-4 border-l-primary">
           <p className="font-label-sm text-xs text-on-surface-variant uppercase mb-1 font-semibold">Fuel Efficiency</p>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline-md text-2xl font-bold text-on-surface">8.4</span>
-            <span className="font-label-md text-xs text-on-surface-variant font-semibold">MPG</span>
+            <span className="font-headline-md text-2xl font-bold text-on-surface">{fuelEfficiency}</span>
+            <span className="font-label-md text-xs text-on-surface-variant font-semibold">km/L</span>
           </div>
           <div className="flex items-center gap-1 mt-2 text-success">
             <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            <span className="font-label-sm text-[11px] font-semibold">12% vs last month</span>
+            <span className="font-label-sm text-[11px] font-semibold">Sync Active</span>
           </div>
         </div>
         
         <div className="bento-card p-6 rounded-xl border-l-4 border-l-info">
           <p className="font-label-sm text-xs text-on-surface-variant uppercase mb-1 font-semibold">Fleet Utilization</p>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline-md text-2xl font-bold text-on-surface">92.8</span>
+            <span className="font-headline-md text-2xl font-bold text-on-surface">{utilizationPct}</span>
             <span className="font-label-md text-xs text-on-surface-variant font-semibold">%</span>
           </div>
           <div className="flex items-center gap-1 mt-2 text-success">
             <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            <span className="font-label-sm text-[11px] font-semibold">4.2% optimized</span>
+            <span className="font-label-sm text-[11px] font-semibold">Optimized</span>
           </div>
         </div>
 
         <div className="bento-card p-6 rounded-xl border-l-4 border-l-danger">
           <p className="font-label-sm text-xs text-on-surface-variant uppercase mb-1 font-semibold">Operational Cost</p>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline-md text-2xl font-bold text-on-surface">₹1.42Cr</span>
+            <span className="font-headline-md text-2xl font-bold text-on-surface">{formattedCost}</span>
           </div>
-          <div className="flex items-center gap-1 mt-2 text-danger">
-            <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            <span className="font-label-sm text-[11px] font-semibold">2.1% increase</span>
+          <div className="flex items-center gap-1 mt-2 text-on-surface-variant/70">
+            <span className="material-symbols-outlined text-[16px]">info</span>
+            <span className="font-label-sm text-[11px] font-semibold">Fuel + Maint + Incidental</span>
           </div>
         </div>
 
         <div className="bento-card p-6 rounded-xl border-l-4 border-l-success">
           <p className="font-label-sm text-xs text-on-surface-variant uppercase mb-1 font-semibold">Vehicle ROI</p>
           <div className="flex items-baseline gap-2">
-            <span className="font-headline-md text-2xl font-bold text-on-surface">18.5</span>
+            <span className="font-headline-md text-2xl font-bold text-on-surface">{roiPct}</span>
             <span className="font-label-md text-xs text-on-surface-variant font-semibold">%</span>
           </div>
           <div className="flex items-center gap-1 mt-2 text-success">
             <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            <span className="font-label-sm text-[11px] font-semibold">Above target</span>
+            <span className="font-label-sm text-[11px] font-semibold">Overall Margin</span>
           </div>
         </div>
       </div>
@@ -278,7 +410,7 @@ export default function Analytics() {
         <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-surface-container-low/40">
           <h3 className="font-headline-sm text-base font-bold m-0">Fleet Performance Log</h3>
           <span className="px-3 py-1 bg-surface-container-highest border border-border-subtle rounded text-[10px] font-bold text-on-surface-variant">
-            Showing 3 of 124 entries
+            Showing {performanceData.length} entries
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -286,38 +418,24 @@ export default function Analytics() {
             <thead className="bg-surface-container-low text-on-surface-variant uppercase font-label-sm text-xs border-b border-border-subtle">
               <tr>
                 <th className="p-4 font-bold">Vehicle Group</th>
-                <th className="p-4 text-center font-bold">Avg Fuel (MPG)</th>
+                <th className="p-4 text-center font-bold">Avg Fuel</th>
                 <th className="p-4 text-center font-bold">Utilization</th>
-                <th className="p-4 text-center font-bold">Total Miles</th>
+                <th className="p-4 text-center font-bold">Total Distance</th>
                 <th className="p-4 text-right font-bold">Maint. Spend</th>
                 <th className="p-4 text-right font-bold">Revenue</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-border-subtle font-medium">
-              <tr className="hover:bg-surface-container-high transition-colors">
-                <td className="p-4 text-on-surface">Heavy-Duty Haulers</td>
-                <td className="p-4 text-center text-on-surface-variant">7.2</td>
-                <td className="p-4 text-center text-on-surface-variant">94%</td>
-                <td className="p-4 text-center text-on-surface-variant">124,500</td>
-                <td className="p-4 text-right text-on-surface-variant">₹4,250</td>
-                <td className="p-4 text-right text-success font-bold">₹32,100</td>
-              </tr>
-              <tr className="bg-surface-container-lowest/20 hover:bg-surface-container-high transition-colors">
-                <td className="p-4 text-on-surface">Regional Distribution</td>
-                <td className="p-4 text-center text-on-surface-variant">9.8</td>
-                <td className="p-4 text-center text-on-surface-variant">88%</td>
-                <td className="p-4 text-center text-on-surface-variant">85,200</td>
-                <td className="p-4 text-right text-on-surface-variant">₹2,100</td>
-                <td className="p-4 text-right text-success font-bold">₹24,400</td>
-              </tr>
-              <tr className="hover:bg-surface-container-high transition-colors">
-                <td className="p-4 text-on-surface">Last-Mile Couriers</td>
-                <td className="p-4 text-center text-on-surface-variant">14.5</td>
-                <td className="p-4 text-center text-on-surface-variant">82%</td>
-                <td className="p-4 text-center text-on-surface-variant">42,800</td>
-                <td className="p-4 text-right text-on-surface-variant">₹850</td>
-                <td className="p-4 text-right text-success font-bold">₹18,200</td>
-              </tr>
+              {performanceData.map((row, idx) => (
+                <tr key={idx} className="hover:bg-surface-container-high transition-colors">
+                  <td className="p-4 text-on-surface">{row.groupName}s</td>
+                  <td className="p-4 text-center text-on-surface-variant">{row.avgFuel}</td>
+                  <td className="p-4 text-center text-on-surface-variant">{row.utilization}</td>
+                  <td className="p-4 text-center text-on-surface-variant">{row.totalMiles}</td>
+                  <td className="p-4 text-right text-on-surface-variant">{row.maintSpend}</td>
+                  <td className="p-4 text-right text-success font-bold">{row.revenue}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

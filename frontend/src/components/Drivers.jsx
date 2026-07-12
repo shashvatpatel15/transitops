@@ -15,6 +15,7 @@ export default function Drivers({ user }) {
   const [newSafety, setNewSafety] = useState('100');
   
   // List state
+  const [allDrivers, setAllDrivers] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,9 +36,21 @@ export default function Drivers({ user }) {
       });
   };
 
+  const fetchAllDrivers = () => {
+    api.getDrivers()
+      .then(data => {
+        setAllDrivers(Array.isArray(data) ? data : data.results || []);
+      })
+      .catch(console.error);
+  };
+
   useEffect(() => {
     fetchDrivers();
   }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    fetchAllDrivers();
+  }, []);
 
   const handleAddDriver = (e) => {
     e.preventDefault();
@@ -61,6 +74,7 @@ export default function Drivers({ user }) {
         alert('Driver profile successfully registered!');
         setShowAddModal(false);
         fetchDrivers();
+        fetchAllDrivers();
         
         // Reset form
         setNewName('');
@@ -104,14 +118,17 @@ export default function Drivers({ user }) {
       .then(() => {
         alert('Driver safety score updated.');
         fetchDrivers();
+        fetchAllDrivers();
       })
       .catch(err => alert(err.detail || 'Failed to update safety score.'));
   };
 
-  // Stats calculation
-  const totalDrivers = drivers.length;
-  const activeCount = drivers.filter(d => d.status === 'AVAILABLE' || d.status === 'ON_TRIP').length;
-  const expiredLicenses = drivers.filter(d => !d.is_license_valid).length;
+  // Stats calculation based on all drivers
+  const totalDrivers = allDrivers.length;
+  const activeCount = allDrivers.filter(d => d.status === 'AVAILABLE' || d.status === 'ON_TRIP').length;
+  const expiredLicenses = allDrivers.filter(d => !d.is_license_valid).length;
+  const avgSafetyScore = totalDrivers > 0 ? (allDrivers.reduce((sum, d) => sum + (d.safety_score || 0), 0) / totalDrivers).toFixed(1) : '0.0';
+  const validLicensePct = totalDrivers > 0 ? Math.round(((totalDrivers - expiredLicenses) / totalDrivers) * 100) : 0;
 
   return (
     <div className="flex-grow space-y-6">
@@ -167,12 +184,12 @@ export default function Drivers({ user }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-stack-md">
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
           <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Active Operators</p>
-          <p className="text-3xl font-bold text-primary m-0">{activeCount || 110}</p>
+          <p className="text-3xl font-bold text-primary m-0">{activeCount}</p>
         </div>
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
           <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Licensing Alerts</p>
           <div className="flex items-center gap-2">
-            <p className={`text-3xl font-bold m-0 ${expiredLicenses > 0 ? 'text-danger' : 'text-on-surface'}`}>{expiredLicenses || 2}</p>
+            <p className={`text-3xl font-bold m-0 ${expiredLicenses > 0 ? 'text-danger' : 'text-on-surface'}`}>{expiredLicenses}</p>
             {expiredLicenses > 0 && (
               <span className="text-[10px] bg-danger/10 text-danger px-1.5 py-0.5 rounded font-bold uppercase">
                 Action Required
@@ -181,12 +198,12 @@ export default function Drivers({ user }) {
           </div>
         </div>
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
-          <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Compliance Rating</p>
-          <p className="text-3xl font-bold text-success m-0">98.5%</p>
+          <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Avg Safety Score</p>
+          <p className="text-3xl font-bold text-success m-0">{avgSafetyScore}</p>
         </div>
         <div className="bg-surface-raised p-4 rounded-xl border border-border-subtle">
-          <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Training Completion</p>
-          <p className="text-3xl font-bold text-info m-0">100%</p>
+          <p className="text-on-surface-variant font-label-sm text-xs uppercase mb-2 font-semibold">Valid Licenses</p>
+          <p className="text-3xl font-bold text-info m-0">{validLicensePct}%</p>
         </div>
       </div>
 

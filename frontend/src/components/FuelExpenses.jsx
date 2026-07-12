@@ -9,14 +9,15 @@ export default function FuelExpenses({ onViewChange }) {
   // Lists state
   const [fuelLogs, setFuelLogs] = useState([]);
   const [otherExpenses, setOtherExpenses] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
 
   // Log Form states
-  const [fuelVehicle, setFuelVehicle] = useState('TRK-204 (Kenworth T680)');
+  const [fuelVehicle, setFuelVehicle] = useState('');
   const [fuelLiters, setFuelLiters] = useState('');
   const [fuelCost, setFuelCost] = useState('');
 
   const [expTrip, setExpTrip] = useState('');
-  const [expVehicle, setExpVehicle] = useState('TRK-204');
+  const [expVehicle, setExpVehicle] = useState('');
   const [expToll, setExpToll] = useState('');
   const [expMaint, setExpMaint] = useState('');
   const [expOther, setExpOther] = useState('');
@@ -26,10 +27,17 @@ export default function FuelExpenses({ onViewChange }) {
     setLoading(true);
     Promise.all([
       api.getFuelLogs(),
-      api.getExpenses()
-    ]).then(([fuelData, expensesData]) => {
+      api.getExpenses(),
+      api.getVehicles()
+    ]).then(([fuelData, expensesData, vehiclesData]) => {
       setFuelLogs(Array.isArray(fuelData) ? fuelData : fuelData.results || []);
       setOtherExpenses(Array.isArray(expensesData) ? expensesData : expensesData.results || []);
+      const vList = Array.isArray(vehiclesData) ? vehiclesData : vehiclesData.results || [];
+      setVehicles(vList);
+      if (vList.length > 0) {
+        setFuelVehicle(vList[0].registration_number);
+        setExpVehicle(vList[0].registration_number);
+      }
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -280,9 +288,9 @@ export default function FuelExpenses({ onViewChange }) {
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1.5">Vehicle</label>
                 <select value={fuelVehicle} onChange={(e) => setFuelVehicle(e.target.value)} className="w-full bg-surface-container border border-border-subtle rounded-lg px-3 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
-                  <option>TRK-204 (Kenworth T680)</option>
-                  <option>TRK-112 (Freightliner)</option>
-                  <option>TRK-405 (Volvo VNL)</option>
+                  {vehicles.map(v => (
+                    <option key={v.id} value={v.registration_number}>{v.registration_number} ({v.name_model})</option>
+                  ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -322,7 +330,11 @@ export default function FuelExpenses({ onViewChange }) {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1.5">Vehicle</label>
-                  <input type="text" required value={expVehicle} onChange={(e) => setExpVehicle(e.target.value)} className="w-full bg-surface-container border border-border-subtle rounded-lg px-3 py-2 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none" placeholder="TRK-204"/>
+                  <select value={expVehicle} onChange={(e) => setExpVehicle(e.target.value)} className="w-full bg-surface-container border border-border-subtle rounded-lg px-3 py-2 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.registration_number}>{v.registration_number}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">

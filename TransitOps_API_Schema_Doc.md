@@ -10,10 +10,15 @@ Single login, role determines access. Role is stored on the user profile, assign
 
 | Role | Fleet (Vehicles) | Drivers | Trips | Maintenance | Fuel & Expenses | Analytics |
 |---|---|---|---|---|---|---|
-| **Fleet Manager** | full | full | – | full | – | view |
+| **Fleet Manager** | full | full | read-only | full | read-only | view |
 | **Dispatcher** | view | – | full | – | – | – |
 | **Safety Officer** | – | full | view | – | – | – |
-| **Financial Analyst** | view | – | – | – | full | full |
+| **Financial Analyst** | view | – | read-only | read-only | full | full |
+
+> **Permission Note (Analytics/Dashboard Integration):** To prevent dashboard/analytics views from failing or showing empty data, read-only (`GET`) access is allowed for:
+> - **Fleet Manager**: Read-only access to Trips and Fuel & Expenses.
+> - **Financial Analyst**: Read-only access to Trips and Maintenance.
+> This matches the data requirements for front-end dashboards and calculated metrics.
 
 > Assumption: Maintenance is Fleet Manager-only (they own vehicle lifecycle). Fuel & Expenses is Financial Analyst-only for writes. Flag if you want Dispatcher to log fuel at trip completion instead — that's a reasonable alternate design.
 
@@ -158,7 +163,7 @@ class Expense(models.Model):
 | Method | Path | Role | Notes |
 |---|---|---|---|
 | POST | `/api/auth/login/` | any | body: `{email, password}` → `{access, refresh, user: {id, name, role}}`. Locks account 15 min after 5 failed attempts → `403 {"detail": "Account locked. Try again in 15 minutes."}` |
-| POST | `/api/auth/refresh/` | any | body: `{refresh}` → `{access}` |
+| POST | `/api/auth/refresh/` | any | body: `{refresh}` → `{access}`. Returns `401 Unauthorized` if the user ID inside the token does not exist in the database (e.g. after a database reset/reseed). |
 | POST | `/api/auth/logout/` | authenticated | blacklists refresh token |
 | GET | `/api/auth/me/` | authenticated | returns current user profile + role, used by frontend to decide nav/permissions |
 

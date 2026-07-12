@@ -4,13 +4,15 @@
 const API_BASE = 'http://localhost:8000'; // Default local Django backend
 
 // Helper to get JWT tokens from localStorage
-const getHeaders = () => {
+const getHeaders = (path) => {
   const headers = {
     'Content-Type': 'application/json',
   };
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (path !== '/api/auth/login/' && path !== '/api/auth/refresh/') {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
   }
   return headers;
 };
@@ -81,20 +83,27 @@ async function request(path, options = {}) {
     const res = await fetch(url, {
       ...options,
       headers: {
-        ...getHeaders(),
+        ...getHeaders(path),
         ...options.headers,
       },
     });
 
-    if (res.status === 401 && localStorage.getItem('refresh_token')) {
-      // Attempt to refresh
-      const refreshed = await request('/api/auth/refresh/', {
-        method: 'POST',
-        body: JSON.stringify({ refresh: localStorage.getItem('refresh_token') }),
-      });
-      if (refreshed && refreshed.access) {
-        localStorage.setItem('access_token', refreshed.access);
-        return request(path, options);
+    if (res.status === 401 && path !== '/api/auth/refresh/' && localStorage.getItem('refresh_token')) {
+      try {
+        // Attempt to refresh
+        const refreshed = await request('/api/auth/refresh/', {
+          method: 'POST',
+          body: JSON.stringify({ refresh: localStorage.getItem('refresh_token') }),
+        });
+        if (refreshed && refreshed.access) {
+          localStorage.setItem('access_token', refreshed.access);
+          return request(path, options);
+        }
+      } catch (err) {
+        // Clear expired/invalid tokens from localStorage on refresh failure to prevent infinite loop
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        throw err;
       }
     }
 
@@ -110,11 +119,13 @@ async function request(path, options = {}) {
 
     return await res.json();
   } catch (err) {
-    if (err.status) throw err; // Re-throw structured API errors
-    
-    // Connection refused / DNS errors lead to mock fallback execution
-    console.warn(`[TransitOps API Client] Connection to ${url} failed. Running Mock DB Fallback.`);
-    return mockHandler(path, options);
+    if (err.status) throw err;
+    console.error(`[TransitOps API Client] Connection to ${url} failed. Server is offline.`, err);
+    throw {
+      status: 503,
+      error: 'SERVER_OFFLINE',
+      detail: 'Cannot connect to the server. Please ensure the Django backend is running.'
+    };
   }
 }
 

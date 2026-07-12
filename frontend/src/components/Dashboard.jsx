@@ -5,23 +5,20 @@ export default function Dashboard({ onViewChange }) {
   const [vehicleType, setVehicleType] = useState('All Types');
   const [status, setStatus] = useState('All Statuses');
   const [region, setRegion] = useState('West India');
-  const [stats, setStats] = useState({
-    active_vehicles: 142,
-    available_vehicles: 28,
-    vehicles_in_maintenance: 9,
-    active_trips: 84,
-    pending_trips: 15,
-    drivers_on_duty: 118,
-    fleet_utilization_pct: 92.4
-  });
+  const [stats, setStats] = useState(null);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch stats and trips on mount
     Promise.all([
-      api.getDashboardAnalytics(),
-      api.getTrips()
+      api.getDashboardAnalytics().catch(err => {
+        console.error("Dashboard Analytics failed:", err);
+        return null;
+      }),
+      api.getTrips().catch(err => {
+        console.error("Trips failed:", err);
+        return [];
+      })
     ]).then(([analyticsData, tripsData]) => {
       setStats(analyticsData);
       setTrips(tripsData);
@@ -32,18 +29,8 @@ export default function Dashboard({ onViewChange }) {
     });
   }, []);
 
-  const baseTrips = [
-    { id: 1, trip_code: "TR001", vehicle: "VAN-05", driver: "Alex", status: "On Trip", eta: "45 min", type: "Cargo Van", region: "Maharashtra" },
-    { id: 2, trip_code: "TR002", vehicle: "TRK-12", driver: "John", status: "Completed", eta: "—", type: "Semi-Truck", region: "Gujarat" },
-    { id: 3, trip_code: "TR003", vehicle: "MINI-08", driver: "Priya", status: "Dispatched", eta: "1h 10m", type: "Box Truck", region: "Delhi" },
-    { id: 4, trip_code: "TR006", vehicle: "—", driver: "—", status: "Draft", eta: "Awaiting vehicle", type: "Semi-Truck", region: "Maharashtra" }
-  ];
-
-  const recentFilteredTrips = baseTrips.filter(trip => {
-    const typeMatch = vehicleType === 'All' || trip.type.toLowerCase().includes(vehicleType.toLowerCase().replace('-truck', ''));
-    const statusMatch = status === 'All' || trip.status.toLowerCase() === status.toLowerCase() || (status === 'DISPATCHED' && trip.status === 'Dispatched');
-    return typeMatch && statusMatch;
-  });
+  // Use real trips from DB for the recent trips table
+  const recentTrips = trips.slice(0, 5);
 
   if (loading) {
     return (
@@ -100,47 +87,47 @@ export default function Dashboard({ onViewChange }) {
         {/* Active Vehicles */}
         <div className="bg-surface-raised p-4 rounded border border-border-subtle border-l-4 border-l-primary flex flex-col justify-center min-h-[90px]">
           <span className="font-label-sm text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-2">Active Vehicles</span>
-          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats.active_vehicles || 53}</h3>
+          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats?.active_vehicles ?? 0}</h3>
         </div>
 
         {/* Available Vehicles */}
         <div className="bg-surface-raised p-4 rounded border border-border-subtle border-l-4 border-l-success flex flex-col justify-center min-h-[90px]">
           <span className="font-label-sm text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-2">Available Vehicles</span>
-          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats.available_vehicles || 42}</h3>
+          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats?.available_vehicles ?? 0}</h3>
         </div>
 
         {/* Vehicles In Maintenance */}
         <div className="bg-surface-raised p-4 rounded border border-border-subtle border-l-4 border-l-warning flex flex-col justify-center min-h-[90px]">
           <span className="font-label-sm text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-2">Vehicles In Maintenance</span>
           <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">
-            {String(stats.vehicles_in_maintenance || 5).padStart(2, '0')}
+            {String(stats?.vehicles_in_maintenance ?? 0).padStart(2, '0')}
           </h3>
         </div>
 
         {/* Active Trips */}
         <div className="bg-surface-raised p-4 rounded border border-border-subtle border-l-4 border-l-primary flex flex-col justify-center min-h-[90px]">
           <span className="font-label-sm text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-2">Active Trips</span>
-          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats.active_trips || 18}</h3>
+          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats?.active_trips ?? 0}</h3>
         </div>
 
         {/* Pending Trips */}
         <div className="bg-surface-raised p-4 rounded border border-border-subtle border-l-4 border-l-primary flex flex-col justify-center min-h-[90px]">
           <span className="font-label-sm text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-2">Pending Trips</span>
           <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">
-            {String(stats.pending_trips || 9).padStart(2, '0')}
+            {String(stats?.pending_trips ?? 0).padStart(2, '0')}
           </h3>
         </div>
 
         {/* Drivers On Duty */}
         <div className="bg-surface-raised p-4 rounded border border-border-subtle border-l-4 border-l-primary flex flex-col justify-center min-h-[90px]">
           <span className="font-label-sm text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-2">Drivers On Duty</span>
-          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats.drivers_on_duty || 26}</h3>
+          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats?.drivers_on_duty ?? 0}</h3>
         </div>
 
         {/* Fleet Utilization */}
         <div className="bg-surface-raised p-4 rounded border border-border-subtle border-l-4 border-l-success flex flex-col justify-center min-h-[90px]">
           <span className="font-label-sm text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mb-2">Fleet Utilization</span>
-          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats.fleet_utilization_pct || 81}%</h3>
+          <h3 className="font-headline-md text-2xl font-bold text-on-surface m-0">{stats?.fleet_utilization_pct ?? 0}%</h3>
         </div>
       </div>
 
@@ -160,43 +147,41 @@ export default function Dashboard({ onViewChange }) {
                 <thead>
                   <tr className="bg-surface-container-low/50 border-b border-border-subtle">
                     <th className="px-6 py-4 font-label-sm text-xs text-on-surface-variant uppercase tracking-widest font-bold">Trip</th>
-                    <th className="px-6 py-4 font-label-sm text-xs text-on-surface-variant uppercase tracking-widest font-bold">Vehicle</th>
-                    <th className="px-6 py-4 font-label-sm text-xs text-on-surface-variant uppercase tracking-widest font-bold">Driver</th>
+                    <th className="px-6 py-4 font-label-sm text-xs text-on-surface-variant uppercase tracking-widest font-bold">Route</th>
+                    <th className="px-6 py-4 font-label-sm text-xs text-on-surface-variant uppercase tracking-widest font-bold">Vehicle / Driver</th>
                     <th className="px-6 py-4 font-label-sm text-xs text-on-surface-variant uppercase tracking-widest font-bold">Status</th>
-                    <th className="px-6 py-4 font-label-sm text-xs text-on-surface-variant uppercase tracking-widest font-bold">ETA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
-                  {recentFilteredTrips.length > 0 ? (
-                    recentFilteredTrips.map((trip) => {
-                      const isCompleted = trip.status === 'Completed';
-                      const isDraft = trip.status === 'Draft';
-                      
-                      let badgeClass = 'bg-primary text-on-primary'; // On Trip / Dispatched
-                      if (isCompleted) {
-                        badgeClass = 'bg-success text-on-success';
-                      } else if (isDraft) {
-                        badgeClass = 'bg-surface-variant text-on-surface-variant';
-                      }
+                  {recentTrips.length > 0 ? (
+                    recentTrips.map((trip) => {
+                      const statusMap = {
+                        DISPATCHED: { label: 'In Transit', cls: 'bg-primary text-on-primary' },
+                        COMPLETED: { label: 'Completed', cls: 'bg-success text-on-success' },
+                        CANCELLED: { label: 'Cancelled', cls: 'bg-surface-variant text-on-surface-variant' },
+                        DRAFT: { label: 'Draft', cls: 'bg-warning/20 text-warning' },
+                      };
+                      const badge = statusMap[trip.status] || { label: trip.status, cls: 'bg-surface-variant text-on-surface-variant' };
+                      const vName = trip.vehicle_details?.registration_number || '—';
+                      const dName = trip.driver_details?.name || '—';
 
                       return (
                         <tr key={trip.id} className="hover:bg-surface-container-low transition-colors group">
-                          <td className="px-6 py-4 font-body-md text-sm font-semibold text-on-surface">{trip.trip_code}</td>
-                          <td className="px-6 py-4 font-body-md text-sm text-on-surface-variant font-medium">{trip.vehicle}</td>
-                          <td className="px-6 py-4 font-body-md text-sm text-on-surface-variant font-medium">{trip.driver}</td>
+                          <td className="px-6 py-4 font-body-md text-sm font-semibold text-on-surface">{trip.trip_code || `TR${String(trip.id).padStart(3, '0')}`}</td>
+                          <td className="px-6 py-4 font-body-md text-sm text-on-surface-variant font-medium">{trip.source} → {trip.destination}</td>
+                          <td className="px-6 py-4 font-body-md text-sm text-on-surface-variant font-medium">{vName} / {dName}</td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-3 py-1 rounded font-bold text-xs ${badgeClass}`}>
-                              {trip.status}
+                            <span className={`inline-flex items-center px-3 py-1 rounded font-bold text-xs ${badge.cls}`}>
+                              {badge.label}
                             </span>
                           </td>
-                          <td className="px-6 py-4 font-body-md text-sm text-on-surface-variant font-semibold">{trip.eta}</td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center text-on-surface-variant opacity-75">
-                        No recent trips match the active filters.
+                      <td colSpan="4" className="px-6 py-8 text-center text-on-surface-variant opacity-75">
+                        No recent trips found.
                       </td>
                     </tr>
                   )}
@@ -216,10 +201,10 @@ export default function Dashboard({ onViewChange }) {
                 <div>
                   <div className="flex justify-between font-label-md text-xs font-semibold mb-2">
                     <span className="text-on-surface">Available</span>
-                    <span className="text-success font-bold">{stats.available_vehicles || 42}</span>
+                    <span className="text-success font-bold">{stats?.available_vehicles ?? 0}</span>
                   </div>
                   <div className="h-2.5 bg-surface-container rounded-full overflow-hidden">
-                    <div className="h-full bg-success rounded-full" style={{ width: '42%' }} />
+                    <div className="h-full bg-success rounded-full transition-all" style={{ width: `${stats && (stats.available_vehicles + stats.active_vehicles + stats.vehicles_in_maintenance) > 0 ? Math.round((stats.available_vehicles / (stats.available_vehicles + stats.active_vehicles + stats.vehicles_in_maintenance)) * 100) : 0}%` }} />
                   </div>
                 </div>
                 
@@ -227,10 +212,10 @@ export default function Dashboard({ onViewChange }) {
                 <div>
                   <div className="flex justify-between font-label-md text-xs font-semibold mb-2">
                     <span className="text-on-surface">On Trip</span>
-                    <span className="text-info font-bold">{stats.active_vehicles || 53}</span>
+                    <span className="text-info font-bold">{stats?.active_vehicles ?? 0}</span>
                   </div>
                   <div className="h-2.5 bg-surface-container rounded-full overflow-hidden">
-                    <div className="h-full bg-info rounded-full" style={{ width: '53%' }} />
+                    <div className="h-full bg-info rounded-full transition-all" style={{ width: `${stats && (stats.available_vehicles + stats.active_vehicles + stats.vehicles_in_maintenance) > 0 ? Math.round((stats.active_vehicles / (stats.available_vehicles + stats.active_vehicles + stats.vehicles_in_maintenance)) * 100) : 0}%` }} />
                   </div>
                 </div>
 
@@ -238,21 +223,10 @@ export default function Dashboard({ onViewChange }) {
                 <div>
                   <div className="flex justify-between font-label-md text-xs font-semibold mb-2">
                     <span className="text-on-surface">In Shop</span>
-                    <span className="text-warning font-bold">{stats.vehicles_in_maintenance || 5}</span>
+                    <span className="text-warning font-bold">{stats?.vehicles_in_maintenance ?? 0}</span>
                   </div>
                   <div className="h-2.5 bg-surface-container rounded-full overflow-hidden">
-                    <div className="h-full bg-warning rounded-full" style={{ width: '10%' }} />
-                  </div>
-                </div>
-
-                {/* Retired */}
-                <div>
-                  <div className="flex justify-between font-label-md text-xs font-semibold mb-2">
-                    <span className="text-on-surface">Retired</span>
-                    <span className="text-danger font-bold">2</span>
-                  </div>
-                  <div className="h-2.5 bg-surface-container rounded-full overflow-hidden">
-                    <div className="h-full bg-danger rounded-full" style={{ width: '5%' }} />
+                    <div className="h-full bg-warning rounded-full transition-all" style={{ width: `${stats && (stats.available_vehicles + stats.active_vehicles + stats.vehicles_in_maintenance) > 0 ? Math.round((stats.vehicles_in_maintenance / (stats.available_vehicles + stats.active_vehicles + stats.vehicles_in_maintenance)) * 100) : 0}%` }} />
                   </div>
                 </div>
               </div>

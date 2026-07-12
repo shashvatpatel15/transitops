@@ -331,6 +331,10 @@ class TransitOpsTests(APITestCase):
         self.assertEqual(self.client_dispatcher.get(url_driver).status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(self.client_analyst.get(url_driver).status_code, status.HTTP_403_FORBIDDEN)
 
+        # Dispatcher must be able to fetch available drivers to assign them to trips
+        url_available = reverse("driver-available")
+        self.assertEqual(self.client_dispatcher.get(url_available).status_code, status.HTTP_200_OK)
+
         # 3. TRIPS
         url_trip = reverse("trip-list")
         self.assertEqual(self.client_dispatcher.get(url_trip).status_code, status.HTTP_200_OK)

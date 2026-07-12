@@ -22,8 +22,16 @@ class TripViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Trip.objects.all()
         status_param = self.request.query_params.get('status')
+        search_param = self.request.query_params.get('search')
         if status_param:
             queryset = queryset.filter(status=status_param)
+        if search_param:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(trip_code__icontains=search_param) |
+                Q(source__icontains=search_param) |
+                Q(destination__icontains=search_param)
+            )
         return queryset
 
     @action(detail=True, methods=['patch'])
