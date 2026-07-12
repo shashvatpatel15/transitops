@@ -1,0 +1,39 @@
+# Dependency directories
+node_modules/
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments and secrets
+.env
+.env.local
+.env.*.local
+db.sqlite3
+
+# Production builds
+dist/
+dist-ssr/
+out/
+build/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.project
+.pydevproject
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
