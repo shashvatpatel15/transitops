@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export default function Drivers() {
+export default function Drivers({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   
@@ -151,13 +151,15 @@ export default function Drivers() {
             </select>
           </div>
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 hover:brightness-110 shadow-lg shadow-primary/10 transition-all active:scale-95 cursor-pointer border-none"
-          >
-            <span className="material-symbols-outlined text-[20px]">person_add</span>
-            Add Driver
-          </button>
+          {(user?.role === 'FLEET_MANAGER' || user?.role === 'SAFETY_OFFICER') && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 hover:brightness-110 shadow-lg shadow-primary/10 transition-all active:scale-95 cursor-pointer border-none"
+            >
+              <span className="material-symbols-outlined text-[20px]">person_add</span>
+              Add Driver
+            </button>
+          )}
         </div>
       </div>
 
@@ -263,12 +265,16 @@ export default function Drivers() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleUpdateSafetyScore(driver.id, driver.safety_score, driver.status)}
-                          className="bg-transparent text-primary hover:brightness-110 px-3 py-1.5 rounded border border-primary/20 hover:bg-primary/5 transition-all text-xs font-bold cursor-pointer"
-                        >
-                          Audit Score
-                        </button>
+                        {(user?.role === 'FLEET_MANAGER' || user?.role === 'SAFETY_OFFICER') ? (
+                          <button
+                            onClick={() => handleUpdateSafetyScore(driver.id, driver.safety_score, driver.status)}
+                            className="bg-transparent text-primary hover:brightness-110 px-3 py-1.5 rounded border border-primary/20 hover:bg-primary/5 transition-all text-xs font-bold cursor-pointer"
+                          >
+                            Audit Score
+                          </button>
+                        ) : (
+                          <span className="text-xs text-on-surface-variant font-bold italic opacity-60">—</span>
+                        )}
                       </td>
                     </tr>
                   ))

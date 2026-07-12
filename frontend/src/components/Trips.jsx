@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export default function Trips() {
+export default function Trips({ user }) {
   const [source, setSource] = useState('Mumbai Hub, MH');
   const [destination, setDestination] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
@@ -216,8 +216,9 @@ export default function Trips() {
       {/* Main Split Layout */}
       <div className="grid grid-cols-12 gap-6">
         {/* Left: Create Trip Form */}
-        <div className="col-span-12 lg:col-span-5 xl:col-span-4">
-          <div className="bg-surface-raised border border-border-subtle rounded-xl shadow-sm overflow-hidden h-fit">
+        {user?.role === 'DISPATCHER' && (
+          <div className="col-span-12 lg:col-span-5 xl:col-span-4">
+            <div className="bg-surface-raised border border-border-subtle rounded-xl shadow-sm overflow-hidden h-fit">
             <div className="p-4 border-b border-border-subtle bg-surface-container-low flex items-center justify-between">
               <h2 className="font-headline-sm text-base font-bold text-on-surface m-0">Create Trip</h2>
               <span className="font-label-sm text-[10px] text-on-surface-variant px-2 py-1 bg-surface-variant rounded font-semibold uppercase">
@@ -346,9 +347,10 @@ export default function Trips() {
             </form>
           </div>
         </div>
+        )}
 
         {/* Right: Live Board */}
-        <div className="col-span-12 lg:col-span-7 xl:col-span-8">
+        <div className={user?.role === 'DISPATCHER' ? "col-span-12 lg:col-span-7 xl:col-span-8" : "col-span-12"}>
           <div className="bg-surface-raised border border-border-subtle rounded-xl shadow-sm h-full flex flex-col">
             <div className="p-4 border-b border-border-subtle bg-surface-container-low flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -429,20 +431,24 @@ export default function Trips() {
                           </td>
                           <td className="px-4 py-4 text-right">
                             {isDispatched ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => handleOpenCompleteModal(trip)}
-                                  className="px-2.5 py-1.5 bg-success text-on-success rounded font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer border-none"
-                                >
-                                  Complete
-                                </button>
-                                <button
-                                  onClick={() => handleCancelTrip(trip.id)}
-                                  className="px-2.5 py-1.5 border border-danger/30 text-danger hover:bg-danger/10 rounded font-bold text-xs transition-all cursor-pointer bg-transparent"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
+                              user?.role === 'DISPATCHER' ? (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleOpenCompleteModal(trip)}
+                                    className="px-2.5 py-1.5 bg-success text-on-success rounded font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer border-none"
+                                  >
+                                    Complete
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelTrip(trip.id)}
+                                    className="px-2.5 py-1.5 border border-danger/30 text-danger hover:bg-danger/10 rounded font-bold text-xs transition-all cursor-pointer bg-transparent"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-on-surface-variant font-bold italic opacity-60">In Transit</span>
+                              )
                             ) : (
                               <span className="text-sm text-on-surface">
                                 {trip.eta || '—'}

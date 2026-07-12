@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export default function Fleet() {
+export default function Fleet({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All Vehicle Types');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
@@ -152,13 +152,15 @@ export default function Fleet() {
             </select>
           </div>
           
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 hover:brightness-110 shadow-lg shadow-primary/10 transition-all active:scale-95 cursor-pointer border-none"
-          >
-            <span className="material-symbols-outlined text-[20px]">add</span>
-            Add Vehicle
-          </button>
+          {user?.role === 'FLEET_MANAGER' && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 hover:brightness-110 shadow-lg shadow-primary/10 transition-all active:scale-95 cursor-pointer border-none"
+            >
+              <span className="material-symbols-outlined text-[20px]">add</span>
+              Add Vehicle
+            </button>
+          )}
         </div>
       </div>
 
@@ -263,16 +265,20 @@ export default function Fleet() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {vehicle.status !== 'RETIRED' ? (
-                          <button
-                            onClick={() => handleRetire(vehicle.id)}
-                            className="bg-transparent hover:text-danger text-on-surface-variant px-2 py-1 rounded text-xs font-semibold cursor-pointer border border-transparent hover:border-danger/30 flex items-center gap-1"
-                          >
-                            <span className="material-symbols-outlined text-sm">block</span>
-                            Retire
-                          </button>
+                        {user?.role === 'FLEET_MANAGER' ? (
+                          vehicle.status !== 'RETIRED' ? (
+                            <button
+                              onClick={() => handleRetire(vehicle.id)}
+                              className="bg-transparent hover:text-danger text-on-surface-variant px-2 py-1 rounded text-xs font-semibold cursor-pointer border border-transparent hover:border-danger/30 flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-sm">block</span>
+                              Retire
+                            </button>
+                          ) : (
+                            <span className="text-xs text-on-surface-variant font-bold italic opacity-60">RETIRED</span>
+                          )
                         ) : (
-                          <span className="text-xs text-on-surface-variant font-bold italic opacity-60">RETIRED</span>
+                          <span className="text-xs text-on-surface-variant font-bold italic opacity-60">—</span>
                         )}
                       </td>
                     </tr>

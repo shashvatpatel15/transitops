@@ -7,7 +7,12 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 from django.contrib.auth import get_user_model
-from vehicles.models import Vehicle, Driver, Trip, MaintenanceLog, FuelLog, Expense, Setting
+from vehicles.models import Vehicle
+from drivers.models import Driver
+from trips.models import Trip
+from maintenance.models import MaintenanceLog
+from expenses.models import FuelLog, Expense
+from dashboard.models import Setting
 
 User = get_user_model()
 

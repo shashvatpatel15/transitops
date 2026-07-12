@@ -37,3 +37,33 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Media and uploads
+backend/media/
+backend/documents/
+media/
+documents/
+
+# Static files
+backend/staticfiles/
+staticfiles/
+
+# Logs
+*.log
+logs/
+
+# SQLite journal files
+db.sqlite3-journal
+db.sqlite3-shm
+db.sqlite3-wal
+
+# Local test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover

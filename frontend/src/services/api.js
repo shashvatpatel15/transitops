@@ -473,11 +473,23 @@ function mockHandler(path, options) {
 // Exported Service methods
 export const api = {
   // Auth
-  login: (email, password, role) => request('/api/auth/login/', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, role }),
-  }),
-  logout: () => request('/api/auth/logout/', { method: 'POST' }),
+  login: async (email, password, role) => {
+    const res = await request('/api/auth/login/', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, role }),
+    });
+    if (res && res.access) {
+      localStorage.setItem('access_token', res.access);
+      localStorage.setItem('refresh_token', res.refresh);
+    }
+    return res;
+  },
+  logout: async () => {
+    const res = await request('/api/auth/logout/', { method: 'POST' });
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    return res;
+  },
   getMe: () => request('/api/auth/me/'),
 
   // Vehicles
@@ -557,6 +569,23 @@ export const api = {
   // Analytics
   getDashboardAnalytics: () => request('/api/analytics/dashboard/'),
   getCostliestVehicles: () => request('/api/analytics/top-costliest-vehicles/'),
+  exportCSV: async (reportType) => {
+    const token = localStorage.getItem('access_token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`http://localhost:8000/api/analytics/export/csv/?report=${reportType}`, {
+      headers
+    });
+    if (!res.ok) throw new Error("Failed to export CSV");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transitops_${reportType}_report.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  },
 
   // Settings
   getSettings: () => request('/api/settings/'),

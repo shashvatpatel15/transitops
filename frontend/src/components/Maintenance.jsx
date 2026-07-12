@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export default function Maintenance() {
+export default function Maintenance({ user }) {
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [serviceType, setServiceType] = useState('Oil & Filter Change');
   const [cost, setCost] = useState('');
@@ -90,7 +90,8 @@ export default function Maintenance() {
 
       <div className="grid grid-cols-12 gap-stack-md">
         {/* Left Column: Log Service Record */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-stack-md">
+        {user?.role !== 'FINANCIAL_ANALYST' && (
+          <div className="col-span-12 lg:col-span-4 flex flex-col gap-stack-md">
           <section className="bg-surface-raised border border-border-subtle rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
               <span className="material-symbols-outlined text-primary text-2xl">history_edu</span>
@@ -229,9 +230,10 @@ export default function Maintenance() {
             </div>
           </section>
         </div>
+        )}
 
         {/* Right Column: Service Log Table */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col h-full overflow-hidden">
+        <div className={user?.role !== 'FINANCIAL_ANALYST' ? "col-span-12 lg:col-span-8 flex flex-col h-full overflow-hidden" : "col-span-12 flex flex-col h-full overflow-hidden"}>
           <section className="bg-surface-raised border border-border-subtle rounded-xl flex flex-col h-full shadow-sm">
             <div className="p-6 border-b border-border-subtle flex justify-between items-center bg-surface-container-low/50">
               <div>
@@ -298,12 +300,16 @@ export default function Maintenance() {
                           </td>
                           <td className="px-6 py-4 text-right">
                             {!isClosed ? (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleCloseMaintenance(log.id); }}
-                                className="bg-success text-on-success font-bold text-xs px-2.5 py-1 rounded hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer"
-                              >
-                                Close Log
-                              </button>
+                              (user?.role === 'FLEET_MANAGER' || user?.role === 'SAFETY_OFFICER') ? (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleCloseMaintenance(log.id); }}
+                                  className="bg-success text-on-success font-bold text-xs px-2.5 py-1 rounded hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer"
+                                >
+                                  Close Log
+                                </button>
+                              ) : (
+                                <span className="text-xs text-on-surface-variant font-bold italic opacity-60">OPEN</span>
+                              )
                             ) : (
                               <span className="text-xs text-on-surface-variant font-bold italic opacity-60">CLOSED</span>
                             )}

@@ -1,5 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function Analytics() {
   const [animate, setAnimate] = useState(false);
@@ -30,9 +49,78 @@ export default function Analytics() {
   ];
 
   const handleExportCSV = (reportType) => {
-    alert(`Downloading ${reportType} report CSV from /api/analytics/export/csv/?report=${reportType}...`);
-    // In production this would open a window or initiate file stream download:
-    // window.open(`http://localhost:8000/api/analytics/export/csv/?report=${reportType}`);
+    api.exportCSV(reportType)
+      .catch(err => alert("Failed to export CSV report: " + err.message));
+  };
+
+  const chartData = {
+    labels: monthlyData.map(d => d.month),
+    datasets: [
+      {
+        label: 'Actual',
+        data: monthlyData.map(d => parseFloat(d.actual.replace('%', ''))),
+        backgroundColor: '#0062a3',
+        borderRadius: 4,
+      },
+      {
+        label: 'Projected',
+        data: monthlyData.map(d => parseFloat(d.projected.replace('%', ''))),
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 4,
+      }
+    ]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(28, 27, 31, 0.95)',
+        titleColor: '#e3e2e6',
+        bodyColor: '#c7c6ca',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          label: (context) => {
+            const rawVal = monthlyData[context.dataIndex].val;
+            return `${context.dataset.label}: ${context.raw}% (${rawVal})`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#c7c6ca',
+          font: {
+            family: 'Outfit, sans-serif',
+            size: 10,
+            weight: 'bold',
+          }
+        }
+      },
+      y: {
+        grid: {
+          color: 'rgba(255, 255, 255, 0.05)',
+        },
+        ticks: {
+          color: '#c7c6ca',
+          font: {
+            family: 'Outfit, sans-serif',
+            size: 10,
+            weight: 'bold',
+          }
+        }
+      }
+    }
   };
 
   return (
@@ -136,28 +224,8 @@ export default function Analytics() {
           </div>
 
           {/* Bar Chart Visual */}
-          <div className="h-[250px] flex items-end justify-between gap-6 px-2">
-            {monthlyData.map((d) => (
-              <div key={d.month} className="flex-1 flex gap-2 h-full items-end justify-center group relative">
-                {/* Projected Bar */}
-                <div
-                  className="w-1/2 bg-surface-variant rounded-t-sm transition-all duration-700 ease-out"
-                  style={{ height: animate ? d.projected : '0%' }}
-                />
-                {/* Actual Bar */}
-                <div
-                  className="w-1/2 bg-primary rounded-t-sm relative transition-all duration-700 ease-out"
-                  style={{ height: animate ? d.actual : '0%' }}
-                >
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-container-highest border border-border-subtle px-2 py-1 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
-                    {d.val}
-                  </div>
-                </div>
-                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 font-label-sm text-[10px] text-on-surface-variant font-bold">
-                  {d.month}
-                </span>
-              </div>
-            ))}
+          <div className="h-[250px] w-full relative">
+            {animate && <Bar data={chartData} options={chartOptions} />}
           </div>
           <div className="h-4"></div>
         </div>

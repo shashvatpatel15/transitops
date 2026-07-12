@@ -28,6 +28,11 @@ export default function App() {
     api.getMe()
       .then(currentUser => {
         setUser(currentUser);
+        if (currentUser.role === 'SAFETY_OFFICER') {
+          setActiveTab('drivers');
+        } else {
+          setActiveTab('dashboard');
+        }
       })
       .catch(() => {
         // No active session
@@ -39,7 +44,11 @@ export default function App() {
 
   const handleLogin = (userInfo) => {
     setUser(userInfo);
-    setActiveTab('dashboard');
+    if (userInfo.role === 'SAFETY_OFFICER') {
+      setActiveTab('drivers');
+    } else {
+      setActiveTab('dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -105,13 +114,13 @@ export default function App() {
       case 'dashboard':
         return <Dashboard onViewChange={setActiveTab} />;
       case 'fleet':
-        return <Fleet />;
+        return <Fleet user={user} />;
       case 'drivers':
-        return <Drivers />;
+        return <Drivers user={user} />;
       case 'trips':
-        return <Trips />;
+        return <Trips user={user} />;
       case 'maintenance':
-        return <Maintenance />;
+        return <Maintenance user={user} />;
       case 'fuel':
         return <FuelExpenses onViewChange={setActiveTab} />;
       case 'analytics':
@@ -120,6 +129,26 @@ export default function App() {
         return <Settings />;
       default:
         return <Dashboard onViewChange={setActiveTab} />;
+    }
+  };
+
+  const isTabAllowed = (tabName) => {
+    if (!user || !user.role) return false;
+    switch (user.role) {
+      case 'FLEET_MANAGER':
+        // ✓ Fleet, ✓ Drivers, — Trips, — Fuel/Exp, ✓ Analytics
+        return ['dashboard', 'fleet', 'drivers', 'analytics', 'settings'].includes(tabName);
+      case 'DISPATCHER':
+        // View Fleet, — Drivers, ✓ Trips, — Fuel/Exp, — Analytics
+        return ['dashboard', 'fleet', 'trips', 'settings'].includes(tabName);
+      case 'SAFETY_OFFICER':
+        // — Fleet, ✓ Drivers, View Trips, — Fuel/Exp, — Analytics
+        return ['drivers', 'trips', 'settings'].includes(tabName);
+      case 'FINANCIAL_ANALYST':
+        // View Fleet, — Drivers, — Trips, ✓ Fuel/Exp, ✓ Analytics
+        return ['dashboard', 'fleet', 'fuel', 'analytics', 'settings'].includes(tabName);
+      default:
+        return false;
     }
   };
 
@@ -134,119 +163,137 @@ export default function App() {
 
         <nav className="flex-1 space-y-1">
           {/* Dashboard */}
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'dashboard'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">dashboard</span>
-            <span className="font-label-md text-sm font-semibold">Dashboard</span>
-          </button>
+          {isTabAllowed('dashboard') && (
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'dashboard'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">dashboard</span>
+              <span className="font-label-md text-sm font-semibold">Dashboard</span>
+            </button>
+          )}
 
           {/* Fleet */}
-          <button
-            onClick={() => setActiveTab('fleet')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'fleet'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">local_shipping</span>
-            <span className="font-label-md text-sm font-semibold">Fleet</span>
-          </button>
+          {isTabAllowed('fleet') && (
+            <button
+              onClick={() => setActiveTab('fleet')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'fleet'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">local_shipping</span>
+              <span className="font-label-md text-sm font-semibold">Fleet</span>
+            </button>
+          )}
 
           {/* Drivers */}
-          <button
-            onClick={() => setActiveTab('drivers')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'drivers'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">person</span>
-            <span className="font-label-md text-sm font-semibold">Drivers</span>
-          </button>
+          {isTabAllowed('drivers') && (
+            <button
+              onClick={() => setActiveTab('drivers')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'drivers'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">person</span>
+              <span className="font-label-md text-sm font-semibold">Drivers</span>
+            </button>
+          )}
 
           {/* Trips */}
-          <button
-            onClick={() => setActiveTab('trips')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'trips'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">route</span>
-            <span className="font-label-md text-sm font-semibold">Trips</span>
-          </button>
+          {isTabAllowed('trips') && (
+            <button
+              onClick={() => setActiveTab('trips')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'trips'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">route</span>
+              <span className="font-label-md text-sm font-semibold">Trips</span>
+            </button>
+          )}
 
           {/* Maintenance */}
-          <button
-            onClick={() => setActiveTab('maintenance')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'maintenance'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">build</span>
-            <span className="font-label-md text-sm font-semibold">Maintenance</span>
-          </button>
+          {isTabAllowed('maintenance') && (
+            <button
+              onClick={() => setActiveTab('maintenance')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'maintenance'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">build</span>
+              <span className="font-label-md text-sm font-semibold">Maintenance</span>
+            </button>
+          )}
 
           {/* Fuel & Expenses */}
-          <button
-            onClick={() => setActiveTab('fuel')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'fuel'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">local_gas_station</span>
-            <span className="font-label-md text-sm font-semibold">Fuel &amp; Expenses</span>
-          </button>
+          {isTabAllowed('fuel') && (
+            <button
+              onClick={() => setActiveTab('fuel')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'fuel'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">local_gas_station</span>
+              <span className="font-label-md text-sm font-semibold">Fuel &amp; Expenses</span>
+            </button>
+          )}
 
           {/* Analytics */}
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'analytics'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">analytics</span>
-            <span className="font-label-md text-sm font-semibold">Analytics</span>
-          </button>
+          {isTabAllowed('analytics') && (
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'analytics'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">analytics</span>
+              <span className="font-label-md text-sm font-semibold">Analytics</span>
+            </button>
+          )}
 
           {/* Settings */}
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
-              activeTab === 'settings'
-                ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
-                : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
-            }`}
-          >
-            <span className="material-symbols-outlined mr-3 block">settings</span>
-            <span className="font-label-md text-sm font-semibold">Settings</span>
-          </button>
+          {isTabAllowed('settings') && (
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-full flex items-center px-4 py-3 group transition-all text-left border-none cursor-pointer ${
+                activeTab === 'settings'
+                  ? 'text-primary font-bold border-l-4 border-primary bg-surface-container-high'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-3 block">settings</span>
+              <span className="font-label-md text-sm font-semibold">Settings</span>
+            </button>
+          )}
         </nav>
 
-        <div className="px-4 mt-auto">
-          <button
-            onClick={() => setActiveTab('trips')}
-            className="w-full bg-primary hover:brightness-110 text-on-primary py-3 px-4 rounded font-bold font-label-md text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/10 cursor-pointer border-none"
-          >
-            <span className="material-symbols-outlined text-[20px] block">add_task</span>
-            New Dispatch
-          </button>
-        </div>
+        {user.role === 'DISPATCHER' && (
+          <div className="px-4 mt-auto">
+            <button
+              onClick={() => setActiveTab('trips')}
+              className="w-full bg-primary hover:brightness-110 text-on-primary py-3 px-4 rounded font-bold font-label-md text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/10 cursor-pointer border-none"
+            >
+              <span className="material-symbols-outlined text-[20px] block">add_task</span>
+              New Dispatch
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* TopNavBar */}
@@ -294,17 +341,13 @@ export default function App() {
 
           <div className="flex items-center gap-3 pl-2 cursor-pointer group" onClick={handleLogout} title="Click to log out">
             <div className="text-right">
-              <p className="font-label-md text-sm font-bold text-on-surface m-0 group-hover:text-primary transition-colors">Raven K.</p>
+              <p className="font-label-md text-sm font-bold text-on-surface m-0 group-hover:text-primary transition-colors">{user.first_name ? `${user.first_name} ${(user.last_name || '')[0] || ''}.` : user.email}</p>
               <p className="font-label-sm text-[10px] text-on-surface-variant opacity-70 m-0 uppercase tracking-wider">
                 {getRoleLabel()}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-full border-2 border-primary/20 overflow-hidden bg-surface-container-high transition-transform group-hover:scale-105">
-              <img
-                className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrDQnC1DDiO4W6uspqyXTeQRe2bK7ZGl4SF9AfKdVCzzwSRoroHfT6iPy6pBAHXcwYIPpZSEpCF3hPc_2374DTICAhe3faNeGM2MNeubi0RkrohupkWb3bjLxnHF8yHbs8xRMk5SsgWp0w6YNTsAxa17owSRQfCv78D7xWLpJxZvBcQcWHlR5k7Lsw_7fGS4Y58a5jbSbGJsGn2u2K-mJqfwZai61Dc9b4BZdh4kA5F0bSZtY4XUb1lg"
-                alt="Raven K."
-              />
+            <div className="w-10 h-10 rounded-full border-2 border-primary/20 overflow-hidden bg-primary/20 transition-transform group-hover:scale-105 flex items-center justify-center">
+              <span className="text-primary font-bold text-sm">{(user.first_name || user.email || '?')[0].toUpperCase()}{(user.last_name || '')[0]?.toUpperCase() || ''}</span>
             </div>
           </div>
         </div>
