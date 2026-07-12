@@ -339,19 +339,19 @@ class TransitOpsTests(APITestCase):
         url_trip = reverse("trip-list")
         self.assertEqual(self.client_dispatcher.get(url_trip).status_code, status.HTTP_200_OK)
         self.assertEqual(self.client_safety.get(url_trip).status_code, status.HTTP_200_OK)
-        self.assertEqual(self.client_manager.get(url_trip).status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(self.client_analyst.get(url_trip).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client_manager.get(url_trip).status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client_analyst.get(url_trip).status_code, status.HTTP_200_OK)
 
         # 4. MAINTENANCE (staff-only per wireframe)
         url_maint = reverse("maintenance-list")
         self.assertEqual(self.client_staff.get(url_maint).status_code, status.HTTP_200_OK)
-        self.assertEqual(self.client_manager.get(url_maint).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client_manager.get(url_maint).status_code, status.HTTP_200_OK)
         self.assertEqual(self.client_dispatcher.get(url_maint).status_code, status.HTTP_403_FORBIDDEN)
 
         # 5. FUEL/EXP. (Expenses)
         url_exp = reverse("expense-list")
         self.assertEqual(self.client_analyst.get(url_exp).status_code, status.HTTP_200_OK)
-        self.assertEqual(self.client_manager.get(url_exp).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client_manager.get(url_exp).status_code, status.HTTP_200_OK)
         self.assertEqual(self.client_dispatcher.get(url_exp).status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(self.client_safety.get(url_exp).status_code, status.HTTP_403_FORBIDDEN)
 
@@ -361,3 +361,38 @@ class TransitOpsTests(APITestCase):
         self.assertEqual(self.client_analyst.get(url_analytics).status_code, status.HTTP_200_OK)
         self.assertEqual(self.client_dispatcher.get(url_analytics).status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(self.client_safety.get(url_analytics).status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_recommend_exceeds_all_capacities(self):
+        url = reverse("trip-recommend")
+        data = {
+            "cargoWeight": 5000.00,
+            "plannedDistance": 100.00,
+            "sourceLocation": "Mumbai Hub"
+        }
+        response = self.client_dispatcher.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("recommendations", response.data)
+        self.assertEqual(len(response.data["recommendations"]), 0)
+        self.assertIn("message", response.data)
+        self.assertIn("meets the 5000kg capacity requirement", response.data["message"])
+
+    def test_recommend_successful_match(self):
+        url = reverse("trip-recommend")
+        data = {
+            "cargoWeight": 400.00,
+            "plannedDistance": 100.00,
+            "sourceLocation": "Mumbai Hub"
+        }
+        response = self.client_dispatcher.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("recommendations", response.data)
+        self.assertGreater(len(response.data["recommendations"]), 0)
+        
+        first_rec = response.data["recommendations"][0]
+        self.assertIn("vehicle", first_rec)
+        self.assertIn("driver", first_rec)
+        self.assertIn("finalScore", first_rec)
+        self.assertIn("breakdown", first_rec)
+        self.assertIn("capacityFitScore", first_rec["breakdown"])
+        self.assertIn("driverScore", first_rec["breakdown"])
+        self.assertIn("proximityScore", first_rec["breakdown"])

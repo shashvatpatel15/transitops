@@ -25,18 +25,30 @@ const mockDb = {
   
   vehicles: [
     { id: 1, registration_number: "GJ01AB4521", name_model: "Tata Prima 5530.S", type: "Semi-Truck", max_load_capacity_kg: "20411.00", odometer: "142403.0", acquisition_cost: "3542000.00", region: "Maharashtra", status: "AVAILABLE" },
-    { id: 2, registration_number: "GJ01XY7812", name_model: "Ashok Leyland 5525", type: "Semi-Truck", max_load_capacity_kg: "20184.00", odometer: "89211.0", acquisition_cost: "3620000.00", region: "Gujarat", status: "IN_TRANSIT" },
+    { id: 2, registration_number: "GJ01XY7812", name_model: "Ashok Leyland 5525", type: "Semi-Truck", max_load_capacity_kg: "20184.00", odometer: "89211.0", acquisition_cost: "3620000.00", region: "Gujarat", status: "AVAILABLE" },
     { id: 3, registration_number: "MH12PQ3456", name_model: "Mahindra Cruzio", type: "Cargo Van", max_load_capacity_kg: "2267.00", odometer: "34500.0", acquisition_cost: "1280000.00", region: "Delhi", status: "IN_SHOP" },
     { id: 4, registration_number: "DL03CD9012", name_model: "BharatBenz 1917R", type: "Box Truck", max_load_capacity_kg: "8845.00", odometer: "112090.0", acquisition_cost: "2450000.00", region: "Karnataka", status: "AVAILABLE" },
-    { id: 5, registration_number: "KA05LM4455", name_model: "Eicher Pro 6055", type: "Semi-Truck", max_load_capacity_kg: "20411.00", odometer: "56122.0", acquisition_cost: "3780000.00", region: "Tamil Nadu", status: "RETIRED" }
+    { id: 5, registration_number: "KA05LM4455", name_model: "Eicher Pro 6055", type: "Semi-Truck", max_load_capacity_kg: "20411.00", odometer: "56122.0", acquisition_cost: "3780000.00", region: "Tamil Nadu", status: "RETIRED" },
+    { id: 6, registration_number: "MH43CT8892", name_model: "Tata Signa 4825.T", type: "Semi-Truck", max_load_capacity_kg: "38000.00", odometer: "42100.0", acquisition_cost: "4300000.00", region: "Maharashtra", status: "AVAILABLE" },
+    { id: 7, registration_number: "GJ03BV5678", name_model: "Ashok Leyland Ecomet 1615", type: "Box Truck", max_load_capacity_kg: "16150.00", odometer: "25400.0", acquisition_cost: "2100000.00", region: "Gujarat", status: "AVAILABLE" },
+    { id: 8, registration_number: "KA03MM8811", name_model: "Eicher Pro 2049", type: "Cargo Van", max_load_capacity_kg: "3500.00", odometer: "12000.0", acquisition_cost: "1100000.00", region: "Karnataka", status: "AVAILABLE" },
+    { id: 9, registration_number: "HR55AA4321", name_model: "BharatBenz 3523R", type: "Box Truck", max_load_capacity_kg: "25000.00", odometer: "54000.0", acquisition_cost: "3200000.00", region: "Haryana", status: "AVAILABLE" },
+    { id: 10, registration_number: "DL01DF9001", name_model: "Mahindra Treo Zor", type: "Mini", max_load_capacity_kg: "550.00", odometer: "8500.0", acquisition_cost: "350000.00", region: "Delhi", status: "AVAILABLE" },
+    { id: 11, registration_number: "TS09UB3210", name_model: "Tata Ace Gold", type: "Mini", max_load_capacity_kg: "750.00", odometer: "18400.0", acquisition_cost: "450000.00", region: "Telangana", status: "AVAILABLE" }
   ],
   
   drivers: [
-    { id: 1, name: "Amit Sharma", license_number: "DL-992011A", license_category: "Heavy Truck", license_expiry_date: "2026-10-12", is_license_valid: true, contact_number: "+91 98765-43210", safety_score: 98, status: "AVAILABLE", trip_completion_rate: "98%" },
-    { id: 2, name: "Rajesh Patel", license_number: "DL-881290B", license_category: "Light Cargo", license_expiry_date: "2024-01-02", is_license_valid: false, contact_number: "+91 98765-88120", safety_score: 72, status: "OFF_DUTY", trip_completion_rate: "81%" },
-    { id: 3, name: "Sunita Deshmukh", license_number: "DL-112233C", license_category: "Hazmat", license_expiry_date: "2027-03-15", is_license_valid: true, contact_number: "+91 98765-33110", safety_score: 92, status: "ON_TRIP", trip_completion_rate: "95%" },
-    { id: 4, name: "Gurpreet Singh", license_number: "DL-440021D", license_category: "Heavy Truck", license_expiry_date: "2024-11-19", is_license_valid: false, contact_number: "+91 98765-00440", safety_score: 45, status: "SUSPENDED", trip_completion_rate: "50%" },
-    { id: 5, name: "Karthik Raja", license_number: "DL-229988K", license_category: "Cold Chain", license_expiry_date: "2027-07-08", is_license_valid: true, contact_number: "+91 98765-22880", safety_score: 89, status: "AVAILABLE", trip_completion_rate: "93%" }
+    { id: 1, name: "Amit Sharma", license_number: "DL1420110012903", license_category: "Heavy Truck", license_expiry_date: "2026-10-12", is_license_valid: true, contact_number: "+91 98765-43210", safety_score: 98, status: "AVAILABLE", trip_completion_rate: "98%" },
+    { id: 2, name: "Rajesh Patel", license_number: "GJ0120150088120", license_category: "Light Cargo", license_expiry_date: "2024-01-02", is_license_valid: false, contact_number: "+91 98765-88120", safety_score: 72, status: "OFF_DUTY", trip_completion_rate: "81%" },
+    { id: 3, name: "Sunita Deshmukh", license_number: "MH1220130099451", license_category: "Hazmat", license_expiry_date: "2027-03-15", is_license_valid: true, contact_number: "+91 98765-33110", safety_score: 92, status: "AVAILABLE", trip_completion_rate: "95%" },
+    { id: 4, name: "Gurpreet Singh", license_number: "PB0220100044021", license_category: "Heavy Truck", license_expiry_date: "2024-11-19", is_license_valid: false, contact_number: "+91 98765-00440", safety_score: 45, status: "SUSPENDED", trip_completion_rate: "50%" },
+    { id: 5, name: "Karthik Raja", license_number: "TN0120170022998", license_category: "Cold Chain", license_expiry_date: "2027-07-08", is_license_valid: true, contact_number: "+91 98765-22880", safety_score: 89, status: "AVAILABLE", trip_completion_rate: "93%" },
+    { id: 6, name: "Rajender Prasad", license_number: "HR2620150089431", license_category: "Heavy Truck", license_expiry_date: "2028-04-12", is_license_valid: true, contact_number: "+91 94450-23841", safety_score: 94, status: "AVAILABLE", trip_completion_rate: "100%" },
+    { id: 7, name: "Sanjay Dutt", license_number: "MH1220180029381", license_category: "Heavy Truck", license_expiry_date: "2029-08-20", is_license_valid: true, contact_number: "+91 98220-44912", safety_score: 87, status: "AVAILABLE", trip_completion_rate: "100%" },
+    { id: 8, name: "Vikram Rathore", "license_number": "GJ0120190011234", license_category: "Heavy Truck", license_expiry_date: "2027-11-05", is_license_valid: true, contact_number: "+91 81288-00129", safety_score: 91, status: "AVAILABLE", trip_completion_rate: "100%" },
+    { id: 9, name: "Manpreet Singh", license_number: "PB0220170088921", license_category: "Cold Chain", license_expiry_date: "2030-01-15", is_license_valid: true, contact_number: "+91 98140-55210", safety_score: 96, status: "AVAILABLE", trip_completion_rate: "100%" },
+    { id: 10, name: "Subhash Chandra", license_number: "DL0320160099411", license_category: "Light Cargo", license_expiry_date: "2028-09-30", is_license_valid: true, contact_number: "+91 90130-11223", safety_score: 80, status: "AVAILABLE", trip_completion_rate: "100%" },
+    { id: 11, name: "Balaji Naidu", license_number: "AP0320200033221", license_category: "Hazmat", license_expiry_date: "2029-05-18", is_license_valid: true, contact_number: "+91 94901-44556", safety_score: 93, status: "AVAILABLE", trip_completion_rate: "100%" }
   ],
   
   trips: [
@@ -109,11 +121,29 @@ async function request(path, options = {}) {
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
+      let detail = errBody.detail || 'Server encountered an issue.';
+      let field = errBody.field || null;
+      let error = errBody.error || 'SERVER_ERROR';
+
+      if (!errBody.detail && typeof errBody === 'object' && Object.keys(errBody).length > 0) {
+        const firstKey = Object.keys(errBody)[0];
+        const val = errBody[firstKey];
+        field = firstKey;
+        if (Array.isArray(val) && val.length > 0) {
+          detail = val[0];
+        } else if (typeof val === 'string') {
+          detail = val;
+        } else {
+          detail = JSON.stringify(val);
+        }
+        error = 'VALIDATION_ERROR';
+      }
+
       throw {
         status: res.status,
-        error: errBody.error || 'SERVER_ERROR',
-        detail: errBody.detail || 'Server encountered an issue.',
-        field: errBody.field || null,
+        error,
+        detail,
+        field,
       };
     }
 
@@ -263,6 +293,80 @@ function mockHandler(path, options) {
 
   // -- 4. Trip Endpoints & Business Validation Rules --
   if (path.startsWith('/api/trips/')) {
+    if (path === '/api/trips/recommend/' || path === '/api/trips/recommend') {
+      const cargoWeight = parseFloat(body.cargoWeight || 0);
+      const plannedDistance = parseFloat(body.plannedDistance || 0);
+      const sourceLocation = body.sourceLocation || '';
+
+      const availableVehicles = mockDb.vehicles.filter(v => v.status === 'AVAILABLE');
+      const availableDrivers = mockDb.drivers.filter(d => d.status === 'AVAILABLE' && d.is_license_valid);
+
+      const validVehicles = availableVehicles.filter(v => parseFloat(v.max_load_capacity_kg) >= cargoWeight);
+
+      if (availableVehicles.length === 0) {
+        return { recommendations: [], message: "No available vehicles in the fleet." };
+      }
+      if (availableDrivers.length === 0) {
+        return { recommendations: [], message: "No available drivers with valid licenses." };
+      }
+      if (validVehicles.length === 0) {
+        return { recommendations: [], message: `No available vehicle meets the ${cargoWeight.toFixed(0)}kg capacity requirement.` };
+      }
+
+      const pairs = [];
+      for (const vehicle of validVehicles) {
+        for (const driver of availableDrivers) {
+          const maxCap = parseFloat(vehicle.max_load_capacity_kg);
+          const ratio = maxCap > 0 ? cargoWeight / maxCap : 0;
+          let capacityFit = 0;
+          if (ratio >= 0.7 && ratio <= 0.95) {
+            capacityFit = 1.0;
+          } else if (ratio > 0.95) {
+            capacityFit = Math.max(0.0, 1.0 - (ratio - 0.95));
+          } else {
+            capacityFit = Math.max(0.0, ratio / 0.7);
+          }
+
+          const driverScore = (driver.safety_score || 0) / 100;
+          const proximityScore = 0.5;
+
+          const finalScore = (capacityFit * 0.4) + (driverScore * 0.4) + (proximityScore * 0.2);
+
+          pairs.push({
+            vehicle: vehicle,
+            driver: driver,
+            finalScore: Math.round(finalScore * 100),
+            breakdown: {
+              capacityFitScore: Math.round(capacityFit * 100),
+              driverScore: Math.round(driverScore * 100),
+              proximityScore: Math.round(proximityScore * 100)
+            }
+          });
+        }
+      }
+
+      pairs.sort((a, b) => b.finalScore - a.finalScore);
+      
+      const uniqueVehiclePairs = [];
+      const seenVehicles = new Set();
+      for (const p of pairs) {
+        if (!seenVehicles.has(p.vehicle.id)) {
+          seenVehicles.add(p.vehicle.id);
+          uniqueVehiclePairs.push(p);
+          if (uniqueVehiclePairs.length === 3) {
+            break;
+          }
+        }
+      }
+
+      const top3 = uniqueVehiclePairs;
+
+      return {
+        recommendations: top3,
+        message: top3.length > 0 ? `Found ${top3.length} match(es).` : "No valid matches found."
+      };
+    }
+
     if (path === '/api/trips/') {
       if (method === 'POST') {
         const newTrip = {
@@ -405,9 +509,10 @@ function mockHandler(path, options) {
   // -- 6. Fuel & Expense Endpoints --
   if (path.startsWith('/api/fuel-logs/')) {
     if (method === 'POST') {
+      const vObj = mockDb.vehicles.find(v => v.id === parseInt(body.vehicle) || v.registration_number === body.vehicle) || { name_model: body.vehicle, registration_number: body.vehicle };
       const newLog = {
         id: mockDb.fuelLogs.length + 1,
-        vehicle_details: { name_model: body.vehicle },
+        vehicle_details: { name_model: vObj.name_model, registration_number: vObj.registration_number },
         date: body.date || new Date().toISOString().split('T')[0],
         liters: body.liters,
         cost: body.cost,
@@ -421,10 +526,11 @@ function mockHandler(path, options) {
 
   if (path.startsWith('/api/expenses/')) {
     if (method === 'POST') {
+      const vObj = mockDb.vehicles.find(v => v.id === parseInt(body.vehicle) || v.registration_number === body.vehicle) || { registration_number: body.vehicle };
       const newExp = {
         id: mockDb.expenses.length + 1,
         trip_code: body.trip_code,
-        vehicle: body.vehicle,
+        vehicle: vObj.registration_number,
         toll: body.toll,
         maint: body.maint,
         other: body.other,
@@ -540,6 +646,10 @@ export const api = {
     return request(`/api/trips/${q ? '?' + q : ''}`);
   },
   createTrip: (data) => request('/api/trips/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getTripRecommendation: (data) => request('/api/trips/recommend/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),

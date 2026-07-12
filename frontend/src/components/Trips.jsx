@@ -18,6 +18,11 @@ export default function Trips({ user }) {
   const [availableDrivers, setAvailableDrivers] = useState([]);
   const [trips, setTrips] = useState([]);
 
+  const [recommendations, setRecommendations] = useState([]);
+  const [recMessage, setRecMessage] = useState('');
+  const [recLoading, setRecLoading] = useState(false);
+  const [showAlternatives, setShowAlternatives] = useState(false);
+
   // Completion modal state
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [activeTripForCompletion, setActiveTripForCompletion] = useState(null);
@@ -62,6 +67,26 @@ export default function Trips({ user }) {
   useEffect(() => {
     fetchDropdownsAndTrips();
   }, [searchTerm]);
+
+  const handleSuggestMatch = async () => {
+    setRecLoading(true);
+    setRecMessage('');
+    setRecommendations([]);
+    try {
+      const data = await api.getTripRecommendation({
+        cargoWeight: parseFloat(weight),
+        plannedDistance: parseFloat(distance),
+        sourceLocation: source
+      });
+      setRecommendations(data.recommendations || []);
+      setRecMessage(data.message || '');
+    } catch (err) {
+      console.error(err);
+      setRecMessage(err.detail || 'Failed to fetch recommendation.');
+    } finally {
+      setRecLoading(false);
+    }
+  };
 
   const selectedVehicleObj = availableVehicles.find(v => v.id === parseInt(selectedVehicle));
   const vehicleCapacity = selectedVehicleObj ? parseFloat(selectedVehicleObj.max_load_capacity_kg) : 0;
@@ -250,6 +275,139 @@ export default function Trips({ user }) {
                     type="number" value={distance} onChange={(e) => setDistance(parseInt(e.target.value) || 0)}
                     className="w-full bg-surface-container border border-border-subtle rounded-lg py-2.5 px-4 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none"
                   />
+                </div>
+
+                {/* AI Recommendation Module */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleSuggestMatch}
+                    disabled={recLoading}
+                    className="w-full py-2.5 px-4 bg-surface-container border border-primary/40 hover:border-primary text-primary font-bold rounded-lg text-sm hover:bg-primary/10 transition-all cursor-pointer flex items-center justify-center gap-2 mb-4"
+                  >
+                    {recLoading ? 'Calculating Matches...' : '✨ Suggest Best Match'}
+                  </button>
+
+                  {recMessage && recommendations.length === 0 && (
+                    <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-warning font-semibold m-0">{recMessage}</p>
+                    </div>
+                  )}
+
+                  {recommendations.length > 0 && (
+                    <div className="bg-surface-container border-2 border-primary/40 rounded-xl p-4 mb-4 relative overflow-hidden shadow-lg transition-all">
+                      <div className="absolute top-0 right-0 bg-primary text-on-primary text-[10px] font-extrabold uppercase px-3 py-1 rounded-bl-lg tracking-wider">
+                        Best Match
+                      </div>
+
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-on-surface m-0">{recommendations[0].vehicle.name_model}</h4>
+                          <p className="text-[11px] text-on-surface-variant/80 m-0 mt-0.5">{recommendations[0].vehicle.registration_number} ({parseFloat(recommendations[0].vehicle.max_load_capacity_kg).toLocaleString()} kg max)</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-black text-primary">{recommendations[0].finalScore}% Match</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-3 bg-surface-container-low/60 p-2 rounded-lg border border-border-subtle/30">
+                        <span className="material-symbols-outlined text-primary text-base">person</span>
+                        <div>
+                          <p className="text-xs font-semibold text-on-surface m-0">{recommendations[0].driver.name}</p>
+                          <p className="text-[9px] text-on-surface-variant/70 m-0 uppercase font-bold tracking-wider">Safety Score: {recommendations[0].driver.safety_score}</p>
+                        </div>
+                      </div>
+
+                      {/* Sub-scores breakdown */}
+                      <div className="space-y-2 mb-4">
+                        <div>
+                          <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-on-surface-variant/80 mb-0.5">
+                            <span>Capacity Fit</span>
+                            <span>{recommendations[0].breakdown.capacityFitScore}%</span>
+                          </div>
+                          <div className="w-full h-1 bg-surface-container-low rounded-full overflow-hidden">
+                            <div className="h-full bg-success transition-all duration-500" style={{ width: `${recommendations[0].breakdown.capacityFitScore}%` }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-on-surface-variant/80 mb-0.5">
+                            <span>Driver Safety</span>
+                            <span>{recommendations[0].breakdown.driverScore}%</span>
+                          </div>
+                          <div className="w-full h-1 bg-surface-container-low rounded-full overflow-hidden">
+                            <div className="h-full bg-success transition-all duration-500" style={{ width: `${recommendations[0].breakdown.driverScore}%` }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-on-surface-variant/80 mb-0.5">
+                            <span>Proximity Fit</span>
+                            <span>{recommendations[0].breakdown.proximityScore}% (Fleet default)</span>
+                          </div>
+                          <div className="w-full h-1 bg-surface-container-low rounded-full overflow-hidden">
+                            <div className="h-full bg-success transition-all duration-500" style={{ width: `${recommendations[0].breakdown.proximityScore}%` }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedVehicle(recommendations[0].vehicle.id);
+                          setSelectedDriver(recommendations[0].driver.id);
+                        }}
+                        className="w-full py-2 bg-primary text-on-primary font-bold rounded-lg text-xs hover:brightness-110 active:scale-[0.98] transition-all border-none cursor-pointer"
+                      >
+                        Use this match
+                      </button>
+                    </div>
+                  )}
+
+                  {recommendations.length > 1 && (
+                    <div className="mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowAlternatives(!showAlternatives)}
+                        className="flex items-center gap-1 bg-transparent border-none text-[11px] font-bold text-primary cursor-pointer hover:brightness-110 p-0"
+                      >
+                        <span className="material-symbols-outlined text-xs">
+                          {showAlternatives ? 'expand_less' : 'expand_more'}
+                        </span>
+                        {showAlternatives ? 'Hide alternatives' : 'See alternatives'}
+                      </button>
+
+                      {showAlternatives && (
+                        <div className="mt-2 space-y-2 border-t border-border-subtle/50 pt-2">
+                          {recommendations.slice(1).map((alt, idx) => (
+                            <div key={idx} className="bg-surface-container-low border border-border-subtle rounded-lg p-2.5 flex justify-between items-center transition-all hover:bg-surface-container">
+                              <div>
+                                <p className="text-xs font-bold text-on-surface m-0">
+                                  {alt.vehicle.name_model} + {alt.driver.name}
+                                </p>
+                                <p className="text-[10px] text-on-surface-variant/80 m-0 mt-0.5">
+                                  Cap: {parseFloat(alt.vehicle.max_load_capacity_kg).toLocaleString()} kg | Safety: {alt.driver.safety_score}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-extrabold text-primary">{alt.finalScore}% Match</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedVehicle(alt.vehicle.id);
+                                    setSelectedDriver(alt.driver.id);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-surface-container-high hover:bg-primary hover:text-on-primary text-[10px] font-bold rounded text-on-surface-variant border border-border-subtle hover:border-primary transition-all cursor-pointer"
+                                >
+                                  Select
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Capacity Warning */}

@@ -23,6 +23,10 @@ export default function FuelExpenses({ onViewChange }) {
   const [expOther, setExpOther] = useState('');
   const [expStatus, setExpStatus] = useState('Paid');
 
+  // Date filtering state (Defaults to include all mock 2023 data and real-time 2026 data)
+  const [startDate, setStartDate] = useState('2023-10-01');
+  const [endDate, setEndDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString().split('T')[0]);
+
   const fetchFuelAndExpenses = () => {
     setLoading(true);
     Promise.all([
@@ -35,8 +39,8 @@ export default function FuelExpenses({ onViewChange }) {
       const vList = Array.isArray(vehiclesData) ? vehiclesData : vehiclesData.results || [];
       setVehicles(vList);
       if (vList.length > 0) {
-        setFuelVehicle(vList[0].registration_number);
-        setExpVehicle(vList[0].registration_number);
+        setFuelVehicle(vList[0].id);
+        setExpVehicle(vList[0].id);
       }
       setLoading(false);
     }).catch(err => {
@@ -54,7 +58,7 @@ export default function FuelExpenses({ onViewChange }) {
     if (!fuelLiters || !fuelCost) return;
 
     const payload = {
-      vehicle: fuelVehicle,
+      vehicle: parseInt(fuelVehicle),
       liters: parseFloat(fuelLiters),
       cost: parseFloat(fuelCost),
       date: new Date().toISOString().split('T')[0]
@@ -77,7 +81,7 @@ export default function FuelExpenses({ onViewChange }) {
 
     const payload = {
       trip_code: expTrip.startsWith('#') ? expTrip : `#${expTrip}`,
-      vehicle: expVehicle,
+      vehicle: parseInt(expVehicle),
       toll: parseFloat(expToll) || 0.00,
       maint: parseFloat(expMaint) || 0.00,
       other: parseFloat(expOther) || 0.00,
@@ -99,9 +103,20 @@ export default function FuelExpenses({ onViewChange }) {
   };
 
   // Sticky footer calculations based on fetched lists
-  const fuelTotal = fuelLogs.reduce((acc, curr) => acc + parseFloat(curr.cost || 0), 0);
-  const maintenanceTotal = otherExpenses.reduce((acc, curr) => acc + parseFloat(curr.maint || 0), 0);
-  const incidentals = otherExpenses.reduce((acc, curr) => acc + parseFloat(curr.toll || 0) + parseFloat(curr.other || 0), 0);
+  const filteredFuelLogs = fuelLogs.filter(log => {
+    if (!log.date) return true;
+    return log.date >= startDate && log.date <= endDate;
+  });
+
+  const filteredExpenses = otherExpenses.filter(exp => {
+    if (!exp.date) return true;
+    return exp.date >= startDate && exp.date <= endDate;
+  });
+
+  // Sticky footer calculations based on filtered lists
+  const fuelTotal = filteredFuelLogs.reduce((acc, curr) => acc + parseFloat(curr.cost || 0), 0);
+  const maintenanceTotal = filteredExpenses.reduce((acc, curr) => acc + parseFloat(curr.maint || 0), 0);
+  const incidentals = filteredExpenses.reduce((acc, curr) => acc + parseFloat(curr.toll || 0) + parseFloat(curr.other || 0), 0);
   const grandTotal = fuelTotal + maintenanceTotal + incidentals;
 
   return (
@@ -115,7 +130,19 @@ export default function FuelExpenses({ onViewChange }) {
         <div className="flex gap-3">
           <div className="px-4 py-2 bg-surface-container rounded-lg border border-outline-variant flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[18px]">calendar_today</span>
-            <span className="font-label-md text-xs font-semibold text-on-surface">Oct 1 - Oct 31, 2023</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent border-none text-xs font-semibold text-on-surface outline-none cursor-pointer"
+            />
+            <span className="text-xs text-on-surface-variant font-bold">—</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent border-none text-xs font-semibold text-on-surface outline-none cursor-pointer"
+            />
           </div>
         </div>
       </section>
@@ -153,7 +180,7 @@ export default function FuelExpenses({ onViewChange }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
-                  {fuelLogs.map((log, idx) => {
+                  {filteredFuelLogs.map((log, idx) => {
                     const vehicleName = log.vehicle_details ? log.vehicle_details.name_model : log.vehicle;
                     return (
                       <tr key={log.id || idx} className="hover:bg-white/5 transition-colors group">
@@ -208,7 +235,7 @@ export default function FuelExpenses({ onViewChange }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
-                  {otherExpenses.map((exp, idx) => (
+                  {filteredExpenses.map((exp, idx) => (
                     <tr key={exp.id || idx} className="hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4 font-body-md text-sm text-primary font-bold">{exp.trip_code || `#TP-${exp.id}`}</td>
                       <td className="px-6 py-4 font-body-md text-sm text-on-surface">{exp.vehicle}</td>
@@ -289,7 +316,7 @@ export default function FuelExpenses({ onViewChange }) {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1.5">Vehicle</label>
                 <select value={fuelVehicle} onChange={(e) => setFuelVehicle(e.target.value)} className="w-full bg-surface-container border border-border-subtle rounded-lg px-3 py-2.5 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
                   {vehicles.map(v => (
-                    <option key={v.id} value={v.registration_number}>{v.registration_number} ({v.name_model})</option>
+                    <option key={v.id} value={v.id}>{v.registration_number} ({v.name_model})</option>
                   ))}
                 </select>
               </div>
@@ -332,7 +359,7 @@ export default function FuelExpenses({ onViewChange }) {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1.5">Vehicle</label>
                   <select value={expVehicle} onChange={(e) => setExpVehicle(e.target.value)} className="w-full bg-surface-container border border-border-subtle rounded-lg px-3 py-2 text-sm text-on-surface focus:ring-1 focus:ring-primary outline-none">
                     {vehicles.map(v => (
-                      <option key={v.id} value={v.registration_number}>{v.registration_number}</option>
+                      <option key={v.id} value={v.id}>{v.registration_number}</option>
                     ))}
                   </select>
                 </div>
